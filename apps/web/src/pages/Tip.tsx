@@ -2,6 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Wallet, Heart, Zap, Star, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { toast } from "sonner";
+import { useCreateTip } from "@/hooks/use-api";
+import { useUser } from "@/contexts/UserContext";
 
 const Tip = () => {
   const navigate = useNavigate();
@@ -9,6 +13,10 @@ const Tip = () => {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const presetAmounts = [5, 10, 25, 50];
+  
+  const { connected, publicKey } = useWallet();
+  const { currentCreator } = useUser();
+  const createTipMutation = useCreateTip();
 
   const handlePresetClick = (preset: number) => {
     setAmount(preset.toString());
@@ -18,6 +26,47 @@ const Tip = () => {
   const handleCustomAmount = (value: string) => {
     setAmount(value);
     setSelectedPreset(null);
+  };
+
+  const handleTipSubmit = async () => {
+    if (!connected || !publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!currentCreator) {
+      toast.error("Creator not found");
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error("Please enter a valid tip amount");
+      return;
+    }
+
+    try {
+      // Generate a mock transaction signature for now
+      // In a real implementation, this would be the actual Solana transaction signature
+      const mockTransactionSignature = `mock_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const result = await createTipMutation.mutateAsync({
+        creator_id: currentCreator.id,
+        tipper_wallet: publicKey.toString(),
+        tip_amount: parseFloat(amount),
+        message: message || undefined,
+        transaction_signature: mockTransactionSignature,
+      });
+
+      if (result.success) {
+        toast.success("Tip sent successfully!");
+        navigate("/dashboard");
+      } else {
+        toast.error("Failed to send tip");
+      }
+    } catch (error) {
+      console.error("Failed to send tip:", error);
+      toast.error("Failed to send tip. Please try again.");
+    }
   };
 
   return (
@@ -30,7 +79,7 @@ const Tip = () => {
               <Heart className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-bold text-lg">Tip Shashank</h2>
+              <h2 className="font-bold text-lg">Tip {currentCreator?.display_name || 'Creator'}</h2>
               <p className="text-sm text-muted-foreground">Support with crypto</p>
             </div>
           </div>
@@ -81,7 +130,7 @@ const Tip = () => {
 
         {/* Message Input */}
         <div className="mb-8">
-          <label className="block text-sm font-medium mb-3 flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm font-medium mb-3">
             <Star className="w-4 h-4" />
             Add a message (optional)
           </label>
@@ -96,14 +145,12 @@ const Tip = () => {
 
         {/* Connect Wallet Button */}
         <Button 
-          disabled={!amount || parseFloat(amount) <= 0}
+          disabled={!amount || parseFloat(amount) <= 0 || createTipMutation.isPending}
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 rounded-full text-lg font-bold mb-4 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
-          onClick={() => {
-            console.log("Connecting wallet with amount:", amount, "and message:", message);
-          }}
+          onClick={handleTipSubmit}
         >
           <Wallet className="w-5 h-5" />
-          Connect Wallet & Tip
+          {createTipMutation.isPending ? "Sending Tip..." : connected ? "Send Tip" : "Connect Wallet & Tip"}
         </Button>
 
         {/* Info */}

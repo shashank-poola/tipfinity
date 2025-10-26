@@ -8,6 +8,7 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter, SolflareWalletAdapter, TorusWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
+import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index.js";
 import Signup from "./pages/Signup.js";
 import ConnectWallet from "./pages/ConnectWallet.js";
@@ -41,26 +42,28 @@ const App = () => (
         <WalletModalProvider>
           {/* @ts-ignore */}
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-                      {/* @ts-ignore */}
-              <Routes>
-          {/* @ts-ignore */}
-                <Route path="/" element={<Index />} />
-                          {/* @ts-ignore */}
-                <Route path="/signup" element={<Signup />} />
-                          {/* @ts-ignore */}
-                <Route path="/connect-wallet" element={<ConnectWallet />} />
-                          {/* @ts-ignore */}
-                <Route path="/dashboard" element={<Dashboard />} />          {/* @ts-ignore */}
+            <UserProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                        {/* @ts-ignore */}
+                <Routes>
+            {/* @ts-ignore */}
+                  <Route path="/" element={<Index />} />
+                            {/* @ts-ignore */}
+                  <Route path="/signup" element={<Signup />} />
+                            {/* @ts-ignore */}
+                  <Route path="/connect-wallet" element={<ConnectWallet />} />
+                            {/* @ts-ignore */}
+                  <Route path="/dashboard" element={<Dashboard />} />          {/* @ts-ignore */}
 
-                <Route path="/tip" element={<Tip />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                          {/* @ts-ignore */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+                  <Route path="/tip" element={<Tip />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                            {/* @ts-ignore */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </UserProvider>
           </TooltipProvider>
         </WalletModalProvider>
       </WalletProvider>

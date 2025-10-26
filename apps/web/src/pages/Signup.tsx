@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Upload } from "lucide-react";
+import { toast } from "sonner";
+import { useCreateCreator, useUsernameAvailability } from "@/hooks/use-api";
+import { useUser } from "@/contexts/UserContext";
 import logo from "@/assets/blacklogo.png";
 
 const Signup = () => {
@@ -9,10 +12,16 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  
+  const { setCurrentCreator } = useUser();
+  const createCreatorMutation = useCreateCreator();
+  const { data: usernameCheck, isLoading: checkingUsername } = useUsernameAvailability(username);
 
   useEffect(() => {
     const stepParam = searchParams.get("step");
@@ -64,10 +73,48 @@ const Signup = () => {
     }
   };
 
-  const handleCustomizeSubmit = (e: React.FormEvent) => {
+  const handleCustomizeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username) {
-      navigate("/dashboard");
+    if (!username || !displayName || !email) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Check username availability
+    if (usernameCheck && !usernameCheck.data?.available) {
+      toast.error("Username is not available");
+      return;
+    }
+
+    try {
+      const result = await createCreatorMutation.mutateAsync({
+        username,
+        display_name: displayName,
+        email,
+        bio: bio || undefined,
+        profile_image: avatarPreview || undefined,
+      });
+
+      if ((result as any).success && (result as any).data) {
+        // Create a creator object with the returned ID
+        const newCreator = {
+          id: (result as any).data.id,
+          username,
+          display_name: displayName,
+          email,
+          bio: bio || null,
+          profile_image: avatarPreview || null,
+          wallet_address: null,
+          created_at: new Date().toISOString(),
+        };
+        
+        setCurrentCreator(newCreator);
+        toast.success("Account created successfully!");
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Failed to create creator:", error);
+      toast.error("Failed to create account. Please try again.");
     }
   };
 
@@ -183,6 +230,18 @@ const Signup = () => {
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-medium">display name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="set display name"
+                  className="w-full px-4 py-3 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium">username</label>
                 <input
                   type="text"
@@ -191,6 +250,28 @@ const Signup = () => {
                   placeholder="set username"
                   className="w-full px-4 py-3 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   required
+                />
+                {username && (
+                  <div className="text-xs">
+                    {checkingUsername ? (
+                      <span className="text-muted-foreground">Checking availability...</span>
+                    ) : usernameCheck?.data?.available === false ? (
+                      <span className="text-red-500">Username not available</span>
+                    ) : usernameCheck?.data?.available === true ? (
+                      <span className="text-green-500">Username available</span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">bio (optional)</label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="tell us about yourself"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 />
               </div>
 
@@ -206,9 +287,10 @@ const Signup = () => {
 
               <button 
                 type="submit"
-                className="w-full bg-foreground text-background hover:bg-foreground/90 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
+                disabled={createCreatorMutation.isPending || checkingUsername}
+                className="w-full bg-foreground text-background hover:bg-foreground/90 px-4 py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue
+                {createCreatorMutation.isPending ? "Creating..." : "Continue"}
               </button>
             </form>
           </>

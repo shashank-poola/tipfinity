@@ -1,18 +1,23 @@
 import { LayoutDashboard, Wallet, BarChart3, User, HelpCircle, LogOut, Youtube, MessageCircle, Twitch, Share2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useTipsForCreator, useRecentTips } from "@/hooks/use-api";
+import { useUser } from "@/contexts/UserContext";
 import logo from "@/assets/logo.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { currentCreator } = useUser();
+  
+  // Fetch tips data
+  const { data: creatorTips, isLoading: loadingCreatorTips } = useTipsForCreator(currentCreator?.id || 0);
+  const { data: recentTipsData, isLoading: loadingRecentTips } = useRecentTips();
 
-  const recentTips = [
-    { id: "0x61C9...6D06", amount: "$40", time: "5 mins ago" },
-    { id: "0x7F3A...8E12", amount: "$40", time: "23 mins ago" },
-    { id: "0x4B2C...9A45", amount: "$40", time: "23 mins ago" },
-    { id: "0x8D1E...3F67", amount: "$40", time: "a day ago" },
-    { id: "0x5C6F...2B89", amount: "$40", time: "a hour ago" }
-  ];
+  // Calculate total tips
+  const totalTips = creatorTips?.data?.reduce((sum, tip) => sum + tip.tip_amount, 0) || 0;
+  
+  // Use real tips data or fallback to empty array
+  const recentTips = creatorTips?.data?.slice(0, 5) || [];
 
   const socialLinks = [
     { icon: Youtube, color: "bg-red-500" },
@@ -66,10 +71,26 @@ const Dashboard = () => {
           {/* Profile Section */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-12">
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-[#FF6B35] flex-shrink-0" />
+              <div className="w-24 h-24 rounded-full bg-[#FF6B35] flex-shrink-0 overflow-hidden">
+                {currentCreator?.profile_image ? (
+                  <img 
+                    src={currentCreator.profile_image} 
+                    alt={currentCreator.display_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-2xl">
+                    {currentCreator?.display_name?.charAt(0) || 'U'}
+                  </div>
+                )}
+              </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold mb-2">Shashank</h1>
-                <p className="text-muted-foreground mb-4">excited to be tipped by fans.</p>
+                <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+                  {currentCreator?.display_name || 'User'}
+                </h1>
+                <p className="text-muted-foreground mb-4">
+                  {currentCreator?.bio || 'excited to be tipped by fans.'}
+                </p>
                 <div className="flex gap-3">
                   {socialLinks.map((social, index) => (
                     <button key={index} className={`${social.color} p-2 rounded-lg`}>
@@ -89,7 +110,7 @@ const Dashboard = () => {
 
           {/* Total Tips */}
           <div className="mb-8">
-            <p className="text-4xl font-bold">$40</p>
+            <p className="text-4xl font-bold">${totalTips.toFixed(2)}</p>
           </div>
 
           {/* Recent Tips Section */}
@@ -103,23 +124,40 @@ const Dashboard = () => {
           <div className="grid lg:grid-cols-[1fr,auto] gap-8">
             {/* Tips List */}
             <div className="space-y-4">
-              {recentTips.map((tip, index) => (
-                <div key={index} className="flex items-center justify-between p-4 rounded-lg border border-border">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary flex-shrink-0" />
-                    <div>
-                      <p className="font-mono font-medium">{tip.id}</p>
+              {loadingCreatorTips ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Loading tips...</p>
+                </div>
+              ) : recentTips.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No tips yet. Share your profile to start receiving tips!</p>
+                </div>
+              ) : (
+                recentTips.map((tip) => (
+                  <div key={tip.id} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary flex-shrink-0" />
+                      <div>
+                        <p className="font-mono font-medium text-sm">
+                          {tip.tipper_wallet.slice(0, 6)}...{tip.tipper_wallet.slice(-4)}
+                        </p>
+                        {tip.message && (
+                          <p className="text-muted-foreground text-xs mt-1">{tip.message}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <p className="font-bold text-lg">${tip.tip_amount.toFixed(2)}</p>
+                      <p className="text-muted-foreground min-w-[100px] text-sm">
+                        {new Date(tip.created_at).toLocaleDateString()}
+                      </p>
+                      <Button size="icon" variant="ghost">
+                        <MoreVertical className="w-5 h-5" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <p className="font-bold text-lg">{tip.amount}</p>
-                    <p className="text-muted-foreground min-w-[100px]">{tip.time}</p>
-                    <Button size="icon" variant="ghost">
-                      <MoreVertical className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* QR Code Section */}

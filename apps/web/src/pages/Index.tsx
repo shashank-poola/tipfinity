@@ -65,20 +65,27 @@ const Index = () => {
         </div>
       </section>
 
-              {/* Main Tagline */}
-              <div className="text-center mb-12"
-              style={{ backgroundColor: "#000000" }}>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
-            A NEWWAY TO
-          </h2>
-          <div className="text-3xl md:text-4xl lg:text-5xl font-bold space-y-1">
-            <div className="text-primary">TIP</div>
-            <div className="text-primary">SEND</div>
-            <div className="text-primary">RECIEVE</div>
-            <div className="text-primary">CONNECT</div>
-            <div className="text-primary">GROW</div>
-          </div>
+      <section
+  className="min-h-screen flex items-center justify-center bg-white"
+>
+  <div className="text-center font-900">
+    <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-black mb-6 leading-none">
+      A NEW WAY TO
+    </h2>
+    <div className="space-y-2 sm:space-y-3 md:space-y-4">
+      {["PAY", "SEND", "RECEIVE", "EXCHANGE", "GET PAID"].map((text) => (
+        <div
+          key={text}
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-tight"
+          style={{ color: "#9146FF" }}
+        >
+          {text}
         </div>
+      ))}
+    </div>
+  </div>
+</section>
+
 
       {/* Third Section - Reach Our Crowd */}
       <section className="min-h-screen flex items-center bg-black">
