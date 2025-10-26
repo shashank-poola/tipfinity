@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "programs/*"
+    "apps/server",
+    "program/programs/tipfinity"
 ]
 resolver = "2"
 
