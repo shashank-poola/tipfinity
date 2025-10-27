@@ -29,3 +29,6 @@ CREATE TABLE activity_logs (
     metadata JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Drop the display_name column from creators table
+ALTER TABLE creators DROP COLUMN IF EXISTS display_name;

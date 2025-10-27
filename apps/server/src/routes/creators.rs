@@ -12,7 +12,6 @@ use crate::models::creators::Creator;
 #[derive(Deserialize)]
 pub struct CreateCreatorInput {
     pub username: String,
-    pub display_name: String,
     pub email: String,
     pub bio: Option<String>,
     pub profile_image: Option<String>,
@@ -36,10 +35,9 @@ pub async fn create_creator(
         );
     }
     let result = sqlx::query!(
-        "INSERT INTO creators (username, display_name, email, bio, profile_image, wallet_address)
+        "INSERT INTO creators (username, email, bio, profile_image, wallet_address)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
         payload.username,
-        payload.display_name,
         payload.email,
         payload.bio,
         payload.profile_image,
@@ -98,6 +96,42 @@ pub async fn get_creator(
         ),
     }
 }
+
+pub async fn get_creator_by_username(
+    Extension(pool): Extension<PgPool>,
+    Path(username): Path<String>,
+) -> (StatusCode, Json<ApiResponse<serde_json::Value>>) {
+    let result = sqlx::query!(
+        "SELECT id, username, wallet_address, email, bio, profile_image, created_at FROM creators WHERE username = $1",
+        username
+    )
+    .fetch_optional(&pool)
+    .await;
+
+    match result {
+        Ok(Some(creator)) => (
+            StatusCode:: Ok,
+            Json(ApiResponse::success(json!({
+                "id": creator.id,
+                "username": creator.username,
+                "wallet_address": creator.wallet_addresss,
+                "email": creator.email,
+                "bio": creator.bio,
+                "profile_image": creator.profile_image,
+                "created_at": creator.created_at
+            }))),
+        ),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::error("creater not found".to_string())),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::error(e.to_string())),
+        ),
+    }
+}
+
 
 // CHECK username availability
 pub async fn check_username(

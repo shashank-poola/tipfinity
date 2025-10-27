@@ -29,6 +29,15 @@ pub struct Tip {
     pub created_at: NaiveDateTime,
 }
 
+#[get("/sol/price")]
+pub async fn sol_price() -> (StatusCode, Json<ApiResponse<f64>>) {
+    match get_sol_price_usd().await {
+        Ok(price) => (StatusCode::OK, Json(ApiResponse::success(price))),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ApiResponse::error(e))),
+    }
+}
+
+
 pub async fn create_tip(
     Extension(pool): Extension<PgPool>,
     Json(payload): Json<CreateTipInput>,
@@ -109,6 +118,27 @@ pub async fn get_recent_tips(
             StatusCode::OK,
             Json(ApiResponse::success(tips)),
         ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::error(e.to_string())),
+        ),
+    }
+}
+
+pub async fn get_tip_by_signature(
+    Extension(pool): Extension<PgPool>,
+    Path(signature): Path<String>,
+) -> (StatusCode, Json<ApiResponse<Tip>>) {
+    let result = sqlx::query_as::<_, Tip>(
+        "SELECT * FROM tips WHERE transaction_signature = $1"
+    )
+    .bind(signature)
+    .fetch_optional(&pool)
+    .await;
+
+    match result {
+        Ok(Some(tip)) => (StatusCode::OK, Json(ApiResponse::success(tip))),
+        Ok(None) => (StatusCode::NOT_FOUND, Json(ApiResponse::error("Tip not found".into()))),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::error(e.to_string())),
