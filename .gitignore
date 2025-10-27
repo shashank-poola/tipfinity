@@ -27,6 +27,13 @@ out/
 build
 dist
 
+# -----------------------------
+# Rust / Anchor
+# -----------------------------
+# Rust build output
+target/
+**/target/
+
 
 # Debug
 npm-debug.log*
